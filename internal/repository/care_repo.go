@@ -43,13 +43,12 @@ func (r *CareRepository) DeleteCycle(plantID, cycleType string) error {
 	return r.db.Where("plant_id = ? AND type = ?", plantID, cycleType).Delete(&model.CareCycle{}).Error
 }
 
+// Transaction 在单个数据库事务内执行 fn。传给 fn 的 CareRepository
+// 绑定到事务的 tx 上，因此其中所有写库操作要么一起提交、要么一起回滚，
+// 避免养护记录写成功而周期未更新这类半提交造成的历史与待办错位。
 func (r *CareRepository) Transaction(fn func(*CareRepository) error) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		outside := &CareRepository{db: r.db}
-		if err := fn(outside); err != nil {
-			return err
-		}
-		return nil
+		return fn(&CareRepository{db: tx})
 	})
 }
 
