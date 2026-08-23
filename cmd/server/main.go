@@ -28,8 +28,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("open database: %v", err)
 	}
-	if err := db.AutoMigrate(&model.User{}, &model.Plant{}, &model.CareLog{}, &model.CareCycle{}); err != nil {
+	if err := db.AutoMigrate(&model.User{}, &model.Plant{}, &model.CareLog{}); err != nil {
 		log.Fatalf("migrate database: %v", err)
+	}
+	if err := repository.NewCareRepository(db).MigrateCycles(); err != nil {
+		log.Fatalf("migrate care cycles: %v", err)
 	}
 
 	users := repository.NewUserRepository(db)
