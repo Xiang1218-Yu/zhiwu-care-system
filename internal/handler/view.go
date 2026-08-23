@@ -152,17 +152,19 @@ func (h *ViewHandler) AddCare(c *gin.Context) {
 		c.HTML(http.StatusBadRequest, "error.html", gin.H{"Title": "记录失败", "Error": err.Error()})
 		return
 	}
-	defer func() {
-		if photoURL != "" {
-			_ = utils.DeleteUploadAfterUse(photoURL, h.uploadDir)
-		}
-	}()
 	input := dto.CareInput{
 		Type: c.PostForm("type"), Note: c.PostForm("note"),
 		WaterCycle:      parseInt(c.PostForm("water_cycle")),
 		FertilizerCycle: parseInt(c.PostForm("fertilizer_cycle")),
 	}
-	if err := h.plants.AddCare(middleware.UserID(c), c.Param("id"), input, photoURL); err != nil {
+	err = h.plants.AddCare(middleware.UserID(c), c.Param("id"), input, photoURL)
+	if err != nil {
+		// The record wasn't saved, so the uploaded photo would otherwise be
+		// left on disk with nothing referencing it. Only clean up on failure;
+		// on success the file is owned by the new care_log row.
+		if photoURL != "" {
+			_ = utils.DeleteUpload(photoURL, h.uploadDir)
+		}
 		c.HTML(http.StatusBadRequest, "error.html", gin.H{"Title": "记录失败", "Error": err.Error()})
 		return
 	}

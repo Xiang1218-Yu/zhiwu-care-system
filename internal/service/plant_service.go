@@ -93,10 +93,10 @@ func (s *PlantService) AddCare(userID, plantID string, input dto.CareInput, phot
 	if _, err := s.Get(userID, plantID); err != nil {
 		return err
 	}
+	// PhotoURL comes in as "/uploads/<file>" from the handler; keep the full
+	// path so stored URLs stay consistent with AvatarURL and what the
+	// timeline / growth-album templates render as <img src="...">.
 	photoURL = strings.TrimSpace(photoURL)
-	if strings.HasPrefix(photoURL, "/uploads/") {
-		photoURL = strings.TrimPrefix(photoURL, "/uploads/")
-	}
 	if !validCareType(input.Type) {
 		return errors.New("不支持的养护类型")
 	}
