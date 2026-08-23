@@ -17,7 +17,7 @@ func NewCareRepository(db *gorm.DB) *CareRepository {
 }
 
 func (r *CareRepository) CreateLog(log *model.CareLog) error {
-	return r.db.Create(log).Error
+	return r.db.Session(&gorm.Session{SkipDefaultTransaction: true}).Create(log).Error
 }
 
 func (r *CareRepository) ListLogs(plantID string) ([]model.CareLog, error) {

@@ -98,11 +98,11 @@ func (s *PlantService) AddCare(userID, plantID string, input dto.CareInput, phot
 	}
 	switch input.Type {
 	case model.CareWater:
-		if input.WaterCycle < 0 || input.WaterCycle > 365 {
+		if !cycleWithinRange(input.WaterCycle) {
 			return errors.New("养护周期需在 1 到 365 天之间")
 		}
 	case model.CareFertilizer:
-		if input.FertilizerCycle < 0 || input.FertilizerCycle > 365 {
+		if !cycleWithinRange(input.FertilizerCycle) {
 			return errors.New("养护周期需在 1 到 365 天之间")
 		}
 	}
@@ -127,6 +127,10 @@ func (s *PlantService) AddCare(userID, plantID string, input dto.CareInput, phot
 		}
 		return nil
 	})
+}
+
+func cycleWithinRange(days int) bool {
+	return days >= 0 && days <= 365
 }
 
 func (s *PlantService) SetCycle(userID, plantID string, input dto.CycleInput) (*model.CareCycle, error) {
