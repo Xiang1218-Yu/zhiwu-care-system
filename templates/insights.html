@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{.Title}} · 植物养护日记</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/insights.css">
+  <link rel="stylesheet" href="/static/insights-extra.css">
+</head>
+<body>
+<div class="shell">
+  <nav class="nav">
+    <a class="brand" href="/">植物<span>·</span>日记</a>
+    <div class="nav-actions">
+      <a href="/">我的植物</a>
+      <a href="/logout">退出</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div>
+      <div class="eyebrow">Growth intelligence</div>
+      <h1>成长分析中心</h1>
+      <p class="subtle">从每一次浇水和新叶照片里，看看植物正在怎样回应你的照顾。</p>
+    </div>
+    <a class="button secondary" href="/insights/export.csv?from={{.Query.From}}&to={{.Query.To}}&plant_id={{.Query.PlantID}}&care_type={{.Query.CareType}}">导出 CSV</a>
+  </header>
+
+  <section class="panel insight-filter">
+    <form method="get" action="/insights">
+      <div class="form-grid">
+        <div class="field">
+          <label>开始日期</label>
+          <input type="date" name="from" value="{{.Query.From}}">
+        </div>
+        <div class="field">
+          <label>结束日期</label>
+          <input type="date" name="to" value="{{.Query.To}}">
+        </div>
+        <div class="field">
+          <label>植物</label>
+          <select name="plant_id">
+            <option value="">全部植物</option>
+            {{range .Plants}}<option value="{{.ID}}" {{if eq $.Query.PlantID .ID}}selected{{end}}>{{.Name}} · {{.Species}}</option>{{end}}
+          </select>
+        </div>
+        <div class="field">
+          <label>操作类型</label>
+          <select name="care_type">
+            <option value="">全部操作</option>
+            <option value="water" {{if eq .Query.CareType "water"}}selected{{end}}>浇水</option>
+            <option value="fertilizer" {{if eq .Query.CareType "fertilizer"}}selected{{end}}>施肥</option>
+            <option value="repot" {{if eq .Query.CareType "repot"}}selected{{end}}>换盆</option>
+            <option value="prune" {{if eq .Query.CareType "prune"}}selected{{end}}>修剪</option>
+            <option value="spray" {{if eq .Query.CareType "spray"}}selected{{end}}>喷药</option>
+            <option value="clean" {{if eq .Query.CareType "clean"}}selected{{end}}>擦拭叶片</option>
+          </select>
+        </div>
+      </div>
+      <button class="button" type="submit">更新分析</button>
+    </form>
+    {{if .Error}}<div class="error" style="margin-top:16px">{{.Error}}</div>{{end}}
+  </section>
+
+  {{if not .Error}}
+  <section class="stats insight-stats">
+    <div class="stat"><small>分析区间</small><strong>{{.Report.From}}</strong><span class="subtle">至 {{.Report.To}}</span></div>
+    <div class="stat"><small>养护总次数</small><strong>{{.Report.TotalCare}}</strong><span class="subtle">活跃 {{.Report.ActiveDays}} 天</span></div>
+    <div class="stat"><small>平均每日</small><strong>{{printf "%.1f" .Report.AveragePerDay}}</strong><span class="subtle">次养护</span></div>
+    <div class="stat"><small>平均健康分</small><strong>{{.Report.HealthAverage}}</strong><span class="subtle">满分 100</span></div>
+  </section>
+
+  <div class="insight-layout">
+    <main>
+      <section class="panel">
+        <div class="section-heading"><div><h2>养护趋势</h2><p class="subtle">每天完成的养护记录数量</p></div><span class="pill success">最佳日 {{.Report.BestDay}} · {{.Report.BestDayCount}} 次</span></div>
+        <div class="trend-chart">
+          {{range .Report.Trend}}<div class="trend-column"><div class="trend-value">{{if .Count}}{{.Count}}{{end}}</div><div class="trend-bar" style="height:{{trendWidth .Count (maxTrend $.Report.Trend)}}%"></div><small>{{.Label}}</small></div>{{end}}
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading"><div><h2>植物健康评分</h2><p class="subtle">结合状态、记录、照片、连续养护和到期情况计算</p></div></div>
+        {{if .Report.Plants}}
+        <div class="health-list">
+          {{range .Report.Plants}}
+          <article class="health-row">
+            <div class="health-main">
+              <div class="health-avatar">{{if .NeedsAttention}}!{{else}}🌿{{end}}</div>
+              <div><a class="health-name" href="/plants/{{.ID}}">{{.Name}}</a><div class="subtle">{{.Species}} · {{.StatusLabel}}</div></div>
+            </div>
+            <div class="health-metrics"><span>{{.TotalCare}} 次养护</span><span>{{.PhotoCount}} 张照片</span><span>连续 {{.Streak}} 天</span>{{if .NextDueDate}}<span>下次 {{.NextDueDate}}</span>{{end}}</div>
+            <div class="score {{.LevelClass}}"><strong>{{.Score}}</strong><small>{{.Level}}</small></div>
+            {{if .NeedsAttention}}<div class="attention">{{.AttentionText}}</div>{{end}}
+          </article>
+          {{end}}
+        </div>
+        {{else}}<div class="empty">筛选区间内还没有可分析的植物。</div>{{end}}
+      </section>
+
+      <section class="panel">
+        <div class="section-heading"><div><h2>成长相册</h2><p class="subtle">筛选区间内上传过照片的养护记录</p></div><span class="pill">{{len .Report.Gallery}} 张照片</span></div>
+        {{if .Report.Gallery}}<div class="gallery-grid">{{range .Report.Gallery}}<figure class="gallery-item"><img src="{{.PhotoURL}}" alt="{{.PlantName}}"><figcaption><strong>{{.PlantName}}</strong><span>{{.TypeLabel}} · {{.Date}}</span>{{if .Note}}<small>{{.Note}}</small>{{end}}</figcaption></figure>{{end}}</div>{{else}}<div class="empty">这个区间还没有上传照片，记录一张新叶吧。</div>{{end}}
+      </section>
+
+      <section class="panel">
+        <div class="section-heading"><div><h2>月度对比</h2><p class="subtle">观察养护频率和照片记录是否保持稳定</p></div></div>
+        <div class="month-table"><div class="month-head"><span>月份</span><span>养护次数</span><span>活跃天数</span><span>照片</span><span>日均</span></div>{{range .Report.Monthly}}<div class="month-row"><strong>{{.Label}}</strong><span>{{.CareCount}}</span><span>{{.ActiveDays}}</span><span>{{.PhotoCount}}</span><span>{{printf "%.2f" .Average}}</span></div>{{end}}</div>
+      </section>
+    </main>
+
+    <aside>
+      <section class="panel"><h2>操作分布</h2><div class="type-list">{{range .Report.CareTypes}}<div class="type-row"><div><span>{{.Label}}</span><small>{{.Count}} 次</small></div><div class="progress"><i style="width:{{.Percent}}%"></i></div></div>{{end}}</div>{{if .Report.TopPlant}}<p class="insight-callout">最常被照顾的是 <strong>{{.Report.TopPlant}}</strong>。</p>{{end}}</section>
+      <section class="panel"><h2>个性化建议</h2>{{if .Report.Recommendations}}<div class="recommend-list">{{range .Report.Recommendations}}<a class="recommend {{.Priority}}" href="/plants/{{.PlantID}}"><strong>{{.PlantName}} · {{.Title}}</strong><span>{{.Message}}</span></a>{{end}}</div>{{else}}<div class="empty" style="padding:20px 10px">目前没有需要额外处理的事项。</div>{{end}}</section>
+      <section class="panel"><h2>分析提示</h2><div class="tip-list"><div><b>01</b><span>连续养护天数越稳定，评分中的习惯分越高。</span></div><div><b>02</b><span>到期周期会降低健康评分，并在列表中优先提醒。</span></div><div><b>03</b><span>成长照片会被保留在相册，便于回看变化。</span></div></div></section>
+    </aside>
+  </div>
+  {{end}}
+  <footer class="footer">植物·日记 · 数据只服务于更好的照顾</footer>
+</div>
+</body>
+</html>
