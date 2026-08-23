@@ -51,7 +51,10 @@ func (r *InsightRepository) ListCareRecords(userID string, from, to time.Time, p
 	query := r.db.Table("care_logs").
 		Select("care_logs.id, care_logs.plant_id, plants.name AS plant_name, plants.status AS plant_status, care_logs.type, care_logs.note, care_logs.photo_url, care_logs.created_at").
 		Joins("JOIN plants ON plants.id = care_logs.plant_id").
-		Where("plants.user_id = ? AND care_logs.created_at >= ? AND care_logs.created_at < ?", userID, from, to.AddDate(0, 0, 2)).
+		// `to` is an exclusive upper bound (the handler advances the user's end
+		// date by one day), so records created on the end date itself are
+		// included while anything after it is excluded.
+		Where("plants.user_id = ? AND care_logs.created_at >= ? AND care_logs.created_at < ?", userID, from, to).
 		Order("care_logs.created_at ASC")
 	if plantID != "" {
 		query = query.Where("care_logs.plant_id = ?", plantID)
