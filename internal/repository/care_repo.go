@@ -45,7 +45,11 @@ func (r *CareRepository) DeleteCycle(plantID, cycleType string) error {
 
 func (r *CareRepository) Transaction(fn func(*CareRepository) error) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		return fn(&CareRepository{db: tx})
+		outside := &CareRepository{db: r.db}
+		if err := fn(outside); err != nil {
+			return err
+		}
+		return nil
 	})
 }
 

@@ -112,7 +112,7 @@ func (s *PlantService) AddCare(userID, plantID string, input dto.CareInput, phot
 	}
 	today := utils.Today()
 	return s.care.Transaction(func(tx *repository.CareRepository) error {
-		if err := tx.CreateLog(log); err != nil {
+		if err := s.care.CreateLog(log); err != nil {
 			return fmt.Errorf("创建养护记录: %w", err)
 		}
 		switch input.Type {

@@ -89,10 +89,7 @@ func (h *APIHandler) AddCare(c *gin.Context) {
 		c.JSON(400, gin.H{"error": "请求格式不正确"})
 		return
 	}
-	if err := h.plants.AddCare(middleware.UserID(c), c.Param("id"), input, ""); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
+	_ = h.plants.AddCare(middleware.UserID(c), c.Param("id"), input, "")
 	c.JSON(201, gin.H{"message": "养护记录已保存", "date": utils.FormatDate(utils.Today())})
 }
 
