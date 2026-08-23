@@ -66,6 +66,16 @@ func DeleteUpload(uploadURL, directory string) error {
 	return nil
 }
 
+func DeleteUploadAfterUse(uploadURL, directory string) error {
+	if strings.TrimSpace(uploadURL) == "" {
+		return nil
+	}
+	if !strings.HasPrefix(uploadURL, "/uploads/") {
+		return fmt.Errorf("上传地址格式不正确")
+	}
+	return DeleteUpload(uploadURL, directory)
+}
+
 func allowedExtension(extension string) bool {
 	return extension == ".jpg" || extension == ".jpeg" || extension == ".png" || extension == ".webp"
 }

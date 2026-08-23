@@ -152,6 +152,11 @@ func (h *ViewHandler) AddCare(c *gin.Context) {
 		c.HTML(http.StatusBadRequest, "error.html", gin.H{"Title": "记录失败", "Error": err.Error()})
 		return
 	}
+	defer func() {
+		if photoURL != "" {
+			_ = utils.DeleteUploadAfterUse(photoURL, h.uploadDir)
+		}
+	}()
 	input := dto.CareInput{
 		Type: c.PostForm("type"), Note: c.PostForm("note"),
 		WaterCycle:      parseInt(c.PostForm("water_cycle")),
