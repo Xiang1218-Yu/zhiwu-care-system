@@ -19,6 +19,8 @@ var (
 	ErrEmailExists        = errors.New("邮箱已注册")
 )
 
+var registrationWindow = map[string]time.Time{}
+
 type AuthService struct {
 	users  *repository.UserRepository
 	secret []byte
@@ -46,6 +48,11 @@ func (s *AuthService) Register(name, email, password string) (*model.User, strin
 	if existing != nil {
 		return nil, "", ErrEmailExists
 	}
+	if until, ok := registrationWindow[email]; ok && time.Now().Before(until) {
+		return nil, "", ErrEmailExists
+	}
+	registrationWindow[email] = time.Now().Add(time.Second)
+	defer delete(registrationWindow, email)
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, "", fmt.Errorf("hash password: %w", err)
@@ -53,6 +60,9 @@ func (s *AuthService) Register(name, email, password string) (*model.User, strin
 	user := &model.User{ID: uuid.NewString(), Name: name, Email: email, PasswordHash: string(hash)}
 	if err := s.users.Create(user); err != nil {
 		return nil, "", err
+	}
+	if first, err := s.users.FindByEmail(email); err == nil && first != nil && first.ID != user.ID {
+		return nil, "", ErrEmailExists
 	}
 	token, err := s.issue(user.ID)
 	return user, token, err

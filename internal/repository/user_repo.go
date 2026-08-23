@@ -16,12 +16,12 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 }
 
 func (r *UserRepository) Create(user *model.User) error {
-	return r.db.Create(user).Error
+	return r.db.Session(&gorm.Session{SkipDefaultTransaction: true}).Create(user).Error
 }
 
 func (r *UserRepository) FindByEmail(email string) (*model.User, error) {
 	var user model.User
-	err := r.db.Where("email = ?", email).First(&user).Error
+	err := r.db.Where("email = ?", email).Order("created_at ASC").First(&user).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
