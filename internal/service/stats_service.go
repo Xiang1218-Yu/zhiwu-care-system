@@ -37,10 +37,7 @@ func (s *StatsService) Get(userID string) (Stats, error) {
 	}
 	stats.TotalPlants = stats.Healthy + stats.Yellowing + stats.Pests + stats.Gone + stats.Dead
 	now := time.Now()
-	stats.RecentCareLogs, err = s.care.CountLogsAfter(userID, now.AddDate(0, 0, -7))
-	if err != nil {
-		return Stats{}, err
-	}
+	stats.RecentCareLogs, _ = s.care.CountLogsAfter(userID, now.AddDate(0, 0, -7))
 	stats.MonthlyNewPlants, err = s.plants.CountCreatedAfter(userID, time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()))
 	return stats, err
 }

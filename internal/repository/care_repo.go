@@ -60,7 +60,7 @@ func (r *CareRepository) ListDueCycles(userID string, today time.Time) ([]model.
 
 func (r *CareRepository) CountLogsAfter(userID string, from time.Time) (int64, error) {
 	var count int64
-	err := r.db.Model(&model.CareLog{}).
+	err := r.db.Table("care_log").
 		Joins("JOIN plants ON plants.id = care_logs.plant_id").
 		Where("plants.user_id = ? AND care_logs.created_at >= ?", userID, from).
 		Count(&count).Error

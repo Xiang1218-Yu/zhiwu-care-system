@@ -128,10 +128,6 @@ func (h *APIHandler) Reminders(c *gin.Context) {
 }
 
 func (h *APIHandler) Stats(c *gin.Context) {
-	stats, err := h.stats.Get(middleware.UserID(c))
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
+	stats, _ := h.stats.Get(middleware.UserID(c))
 	c.JSON(200, stats)
 }
