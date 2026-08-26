@@ -96,14 +96,16 @@ func (s *PlantService) AddCare(userID, plantID string, input dto.CareInput, phot
 	if !validCareType(input.Type) {
 		return errors.New("不支持的养护类型")
 	}
+	// 浇水/施肥必须携带有效周期：周期为 0 或空时记录会落库，但不会生成对应待办，
+	// 导致历史记录与首页待办分叉。此处与下方保存逻辑一致地要求 >= 1，避免分叉。
 	switch input.Type {
 	case model.CareWater:
-		if !cycleWithinRange(input.WaterCycle) {
-			return errors.New("养护周期需在 1 到 365 天之间")
+		if !validCycleDays(input.WaterCycle) {
+			return errors.New("浇水周期需在 1 到 365 天之间")
 		}
 	case model.CareFertilizer:
-		if !cycleWithinRange(input.FertilizerCycle) {
-			return errors.New("养护周期需在 1 到 365 天之间")
+		if !validCycleDays(input.FertilizerCycle) {
+			return errors.New("施肥周期需在 1 到 365 天之间")
 		}
 	}
 	log := &model.CareLog{
@@ -115,22 +117,22 @@ func (s *PlantService) AddCare(userID, plantID string, input dto.CareInput, phot
 		if err := tx.CreateLog(log); err != nil {
 			return fmt.Errorf("创建养护记录: %w", err)
 		}
+		// 周期已校验为 >= 1，记录与待办在同一事务内一并落库，保证不分叉。
 		switch input.Type {
 		case model.CareWater:
-			if input.WaterCycle > 0 {
-				return s.saveCycle(tx, plantID, model.CareWater, input.WaterCycle, today)
-			}
+			return s.saveCycle(tx, plantID, model.CareWater, input.WaterCycle, today)
 		case model.CareFertilizer:
-			if input.FertilizerCycle > 0 {
-				return s.saveCycle(tx, plantID, model.CareFertilizer, input.FertilizerCycle, today)
-			}
+			return s.saveCycle(tx, plantID, model.CareFertilizer, input.FertilizerCycle, today)
 		}
 		return nil
 	})
 }
 
-func cycleWithinRange(days int) bool {
-	return days >= 0 && days <= 365
+// validCycleDays 校验养护周期必须落在 1..365 区间。
+// 与 newCycle 保持一致：浇水/施肥记录入库即应同步生成待办，
+// 因此 0（空值）不予接受，避免出现“记录已存历史但首页无待办”的分叉。
+func validCycleDays(days int) bool {
+	return days >= 1 && days <= 365
 }
 
 func (s *PlantService) SetCycle(userID, plantID string, input dto.CycleInput) (*model.CareCycle, error) {

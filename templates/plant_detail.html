@@ -98,12 +98,12 @@
             <input type="file" name="photo" accept=".jpg,.jpeg,.png,.webp">
           </div>
           <div class="field" id="waterCycle">
-            <label>同步浇水周期（天，可选）</label>
-            <input type="number" name="water_cycle" min="1" max="365" placeholder="例如 3">
+            <label>同步浇水周期（天，1~365）</label>
+            <input type="number" name="water_cycle" min="1" max="365" placeholder="例如 3" required>
           </div>
           <div class="field" id="fertilizerCycle" style="display:none">
-            <label>同步施肥周期（天，可选）</label>
-            <input type="number" name="fertilizer_cycle" min="1" max="365" placeholder="例如 15">
+            <label>同步施肥周期（天，1~365）</label>
+            <input type="number" name="fertilizer_cycle" min="1" max="365" placeholder="例如 15" required>
           </div>
           <div class="field full">
             <label>备注</label>
@@ -137,8 +137,13 @@
 <script>
 function toggleCycle() {
   const type = document.getElementById('careType').value;
-  document.getElementById('waterCycle').style.display = type === 'water' ? 'block' : 'none';
-  document.getElementById('fertilizerCycle').style.display = type === 'fertilizer' ? 'block' : 'none';
+  const water = document.getElementById('waterCycle');
+  const fert = document.getElementById('fertilizerCycle');
+  water.style.display = type === 'water' ? 'block' : 'none';
+  fert.style.display = type === 'fertilizer' ? 'block' : 'none';
+  // 仅对当前选中的养护类型启用必填，避免隐藏字段阻止表单提交。
+  water.querySelector('input').required = type === 'water';
+  fert.querySelector('input').required = type === 'fertilizer';
 }
 toggleCycle();
 </script>

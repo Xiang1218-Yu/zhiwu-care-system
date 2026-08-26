@@ -89,10 +89,7 @@ func (h *APIHandler) AddCare(c *gin.Context) {
 		c.JSON(400, gin.H{"error": "请求格式不正确"})
 		return
 	}
-	if input.CycleDays() < 0 {
-		c.JSON(400, gin.H{"error": "养护周期不能为空"})
-		return
-	}
+	// 周期校验统一交由 service 处理：浇水/施肥要求 1..365，避免记录与待办分叉。
 	if err := h.plants.AddCare(middleware.UserID(c), c.Param("id"), input, ""); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
