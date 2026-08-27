@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{.Title}} · 植物养护日记</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<div class="shell">
+  <nav class="nav">
+    <a class="brand" href="/">植物<span>·</span>日记</a>
+    <div class="nav-actions">
+      <a href="/plants/{{.Plant.ID}}/edit">编辑档案</a>
+      <a href="/">返回列表</a>
+    </div>
+  </nav>
+
+  <header class="detail-head">
+    <div>
+      <div class="eyebrow">Growth story</div>
+      <h1>{{.Plant.Name}}</h1>
+      <p class="subtle">{{.Plant.Species}} · {{.Plant.LocationLabel}} · {{.Plant.StatusLabel}}</p>
+    </div>
+    <form method="post" action="/plants/{{.Plant.ID}}/delete" onsubmit="return confirm('确定删除这盆植物及它的养护记录吗？')">
+      <button class="button danger" type="submit">删除</button>
+    </form>
+  </header>
+
+  <section class="detail-main">
+    <div class="detail-photo">
+      {{if .Plant.AvatarURL}}<img src="{{.Plant.AvatarURL}}" alt="{{.Plant.Name}}">{{else}}🌿{{end}}
+    </div>
+    <div class="detail-info">
+      <div class="card-title">
+        <h2>植物档案</h2>
+        <span class="pill success">{{.Plant.DifficultyLabel}}</span>
+      </div>
+      <p><strong>入手日期：</strong>{{date .Plant.AcquiredDate}}</p>
+      <p><strong>入手来源：</strong>{{.Plant.SourceLabel}}</p>
+      <p><strong>所在位置：</strong>{{.Plant.LocationLabel}}</p>
+      <p><strong>当前状态：</strong>{{.Plant.StatusLabel}}</p>
+
+      <hr style="border:0;border-top:1px solid var(--line);margin:20px 0">
+      <h2>养护周期</h2>
+      <p class="subtle">周期保存后会自动计算下次提醒日期，也可以单独删除。</p>
+      <div class="cycle-list">
+        <form class="cycle-row" method="post" action="/plants/{{.Plant.ID}}/cycles">
+          <input type="hidden" name="type" value="water">
+          <div>
+            <strong>浇水</strong>
+            {{with .Plant.Cycle "water"}}<div class="subtle">下次：{{date .NextDate}}</div>{{else}}<div class="subtle">尚未设置</div>{{end}}
+          </div>
+          <input type="number" name="interval_days" min="1" max="365" placeholder="天数" value="{{with .Plant.Cycle "water"}}{{.IntervalDays}}{{end}}" required>
+          <input type="date" name="last_date" value="{{with .Plant.Cycle "water"}}{{date .LastDate}}{{else}}{{today}}{{end}}" required>
+          <button class="button secondary" type="submit">保存</button>
+        </form>
+        {{with .Plant.Cycle "water"}}
+        <form method="post" action="/plants/{{$.Plant.ID}}/cycles/water/delete" onsubmit="return confirm('删除浇水周期？')">
+          <button class="button danger" type="submit">删除浇水周期</button>
+        </form>
+        {{end}}
+
+        <form class="cycle-row" method="post" action="/plants/{{.Plant.ID}}/cycles">
+          <input type="hidden" name="type" value="fertilizer">
+          <div>
+            <strong>施肥</strong>
+            {{with .Plant.Cycle "fertilizer"}}<div class="subtle">下次：{{date .NextDate}}</div>{{else}}<div class="subtle">尚未设置</div>{{end}}
+          </div>
+          <input type="number" name="interval_days" min="1" max="365" placeholder="天数" value="{{with .Plant.Cycle "fertilizer"}}{{.IntervalDays}}{{end}}" required>
+          <input type="date" name="last_date" value="{{with .Plant.Cycle "fertilizer"}}{{date .LastDate}}{{else}}{{today}}{{end}}" required>
+          <button class="button secondary" type="submit">保存</button>
+        </form>
+        {{with .Plant.Cycle "fertilizer"}}
+        <form method="post" action="/plants/{{$.Plant.ID}}/cycles/fertilizer/delete" onsubmit="return confirm('删除施肥周期？')">
+          <button class="button danger" type="submit">删除施肥周期</button>
+        </form>
+        {{end}}
+      </div>
+
+      <hr style="border:0;border-top:1px solid var(--line);margin:20px 0">
+      <h2>记录一次养护</h2>
+      <form method="post" action="/plants/{{.Plant.ID}}/care" enctype="multipart/form-data">
+        <div class="form-grid">
+          <div class="field">
+            <label>操作类型</label>
+            <select name="type" id="careType" onchange="toggleCycle()" required>
+              <option value="water">浇水</option>
+              <option value="fertilizer">施肥</option>
+              <option value="repot">换盆</option>
+              <option value="prune">修剪</option>
+              <option value="spray">喷药</option>
+              <option value="clean">擦拭叶片</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>照片</label>
+            <input type="file" name="photo" accept=".jpg,.jpeg,.png,.webp">
+          </div>
+          <div class="field" id="waterCycle">
+            <label>同步浇水周期（天，可选）</label>
+            <input type="number" name="water_cycle" min="1" max="365" placeholder="例如 3">
+          </div>
+          <div class="field" id="fertilizerCycle" style="display:none">
+            <label>同步施肥周期（天，可选）</label>
+            <input type="number" name="fertilizer_cycle" min="1" max="365" placeholder="例如 15">
+          </div>
+          <div class="field full">
+            <label>备注</label>
+            <textarea name="note" placeholder="写下用量、时长，或者今天的新发现"></textarea>
+          </div>
+        </div>
+        <button class="button" type="submit">保存养护记录</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="panel timeline">
+    <h2>成长时间线</h2>
+    {{if .Plant.CareLogs}}
+      {{range .Plant.CareLogs}}
+      <div class="log">
+        <div class="log-date">{{date .CreatedAt}}</div>
+        <div>
+          <h3>{{.TypeLabel}}</h3>
+          {{if .Note}}<div>{{.Note}}</div>{{else}}<div class="subtle">今天也被好好照顾了。</div>{{end}}
+          {{if .PhotoURL}}<img src="{{.PhotoURL}}" alt="养护照片">{{end}}
+        </div>
+      </div>
+      {{end}}
+    {{else}}
+      <div class="empty">还没有养护记录，完成第一次照顾后，成长故事会从这里开始。</div>
+    {{end}}
+  </section>
+  <footer class="footer">植物·日记 · 每一片新叶，都是时间留下的回信</footer>
+</div>
+<script>
+function toggleCycle() {
+  const type = document.getElementById('careType').value;
+  document.getElementById('waterCycle').style.display = type === 'water' ? 'block' : 'none';
+  document.getElementById('fertilizerCycle').style.display = type === 'fertilizer' ? 'block' : 'none';
+}
+toggleCycle();
+</script>
+</body>
+</html>
